@@ -34,3 +34,35 @@ Beacon Klipper is the klipper module for using the [Beacon](https://beacon3d.com
 ### Beacon 1.0.0 - Jan 26, 2023
  - Initial Release
 
+
+## Installation
+
+Run installer from the repository:
+
+```bash
+./install.sh
+```
+
+Optional overrides:
+
+```bash
+KLIPPER_PATH=/home/timpan4/klipper \
+PRINTER_DATA=/home/timpan4/printer_data \
+KLIPPY_ENV=/home/timpan4/klippy-env \
+./install.sh
+```
+
+The installer:
+- Detects common `~/klipper`, `~/printer_data`, and Klippy venv paths.
+- Backs up an existing `klippy/extras/beacon.py` with a timestamp before replacing it.
+- Symlinks this repo's `beacon.py` into Klipper's extras folder (after backup).
+
+### Sanity checks
+
+```bash
+# Should only match the fallback compat branch
+rg -n "register_response" /home/timpan4/klipper/klippy/extras/beacon.py
+
+# Optional syntax check
+python -m py_compile /home/timpan4/klipper/klippy/extras/beacon.py
+```

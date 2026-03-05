@@ -182,9 +182,9 @@ class BeaconProbe:
         printer.register_event_handler("klippy:connect", self._handle_connect)
         printer.register_event_handler("klippy:shutdown", self.force_stop_streaming)
         self._mcu.register_config_callback(self._build_config)
-        self._mcu.register_response(self._handle_beacon_data, "beacon_data")
-        self._mcu.register_response(self._handle_beacon_status, "beacon_status")
-        self._mcu.register_response(self._handle_beacon_contact, "beacon_contact")
+        self._register_mcu_response(self._handle_beacon_data, "beacon_data")
+        self._register_mcu_response(self._handle_beacon_status, "beacon_status")
+        self._register_mcu_response(self._handle_beacon_contact, "beacon_contact")
 
         # Register webhooks
         self._api_dump = APIDumpHelper(
@@ -243,6 +243,16 @@ class BeaconProbe:
 
         # Qidi Klipper compatibility
         self.vibrate = 0
+
+    def _register_mcu_response(self, callback, name):
+        register_cb = getattr(self._mcu, "register_serial_response", None)
+        if register_cb is None:
+            register_cb = getattr(self._mcu, "register_response", None)
+        if register_cb is None:
+            raise self.printer.command_error(
+                "MCU object has no response registration API"
+            )
+        register_cb(callback, name)
 
     # Event handlers
 
@@ -3450,8 +3460,8 @@ class BeaconAccelHelper(object):
         self._last_raw_sample = (0, 0, 0)
         self._sample_lock = threading.Lock()
 
-        beacon._mcu.register_response(self._handle_accel_data, "beacon_accel_data")
-        beacon._mcu.register_response(self._handle_accel_state, "beacon_accel_state")
+        beacon._register_mcu_response(self._handle_accel_data, "beacon_accel_data")
+        beacon._register_mcu_response(self._handle_accel_state, "beacon_accel_state")
 
         self.reinit(constants)
 
