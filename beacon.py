@@ -244,34 +244,19 @@ class BeaconProbe:
         # Qidi Klipper compatibility
         self.vibrate = 0
 
-    _serial_response_aliases = {
-        # Some Klipper forks expose only register_serial_response() and require
-        # the full message format. Keep a known alias for the stream message to
-        # avoid runtime mismatches such as:
-        # "beacon_data" vs "beacon_data samples=%c start_clock=%u ...".
-        "beacon_data": "beacon_data samples=%c start_clock=%u delta_clock=%u data=%*s",
-    }
-
     def _register_mcu_response(self, callback, name):
+        # Klipper upstream (c89393cd, Feb 2026) renamed MCU.register_response()
+        # to MCU.register_serial_response() and wrapped it in
+        # AsyncResponseWrapper which validates the full message format string.
+        # Beacon registers streaming callbacks by short name only, which is
+        # exactly what the old register_response() and the low-level
+        # serialhdl.register_response() expect.  Use the old method when
+        # available, otherwise go straight to the serial handler.
         register_response = getattr(self._mcu, "register_response", None)
         if register_response is not None:
             register_response(callback, name)
             return
-
-        register_serial_response = getattr(self._mcu, "register_serial_response", None)
-        if register_serial_response is None:
-            raise self.printer.command_error(
-                "MCU object has no response registration API"
-            )
-
-        # Register by response name for forks that mirror the upstream API.
-        register_serial_response(callback, name)
-
-        # Also register known full-format aliases for forks that key lookups by
-        # complete message signatures.
-        alias = self._serial_response_aliases.get(name)
-        if alias and alias != name:
-            register_serial_response(callback, alias)
+        self._mcu._serial.register_response(callback, name)
 
     # Event handlers
 
